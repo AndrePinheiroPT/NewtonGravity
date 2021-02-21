@@ -4,6 +4,15 @@ import pygame
 G = 10 ** 4
 
 
+class Planet:
+    def __init__(self, x, y, mass, radius):
+        self.x = x
+        self.y = y
+        self.mass = mass
+        self.radius = radius
+        self.velocity = [0, 0]
+
+
 def grid(x, y):
     """
     -> Function which helps to change cartesian coordinates
@@ -51,26 +60,40 @@ def draw_vector_field(planets, screen):
 
 
 def draw_velocity_vector(planets, screen):
+    """
+    -> Function which draws a velocity vector
+    for each planet.
+    :planets: List of corps.
+    :screen: List of corps that will be control.
+    """
     for corp in planets:
         pygame.draw.line(
             screen,
             (255, 255, 0),
             grid(corp.x, corp.y),
             grid(corp.x + corp.velocity[0] / 5, corp.y + corp.velocity[1] / 5)
-            # divide by 5 for not a mini vector
+            # divide by 5 for make mini vector
         )
 
 
-def update_position(planets, screen):
+def update_position(planets):
     """
-    -> Function updates the position of the planets
+    -> Function updates the position of the planets.
     :planets: List of corps that will be control.
+    """
+    for corp in planets:
+        corp.x += corp.velocity[0] / 30
+        corp.y += corp.velocity[1] / 30
+    # Divide of the numbers of fps
+
+
+def draw_planets(planets, screen):
+    """
+    -> Function which drawn planets.
+    :planets: List of corps.
     :screen: Screen where will draw.
     """
     for corp in planets:
-        corp.x += corp.velocity[0] / 10
-        corp.y += corp.velocity[1] / 10
-
         pygame.draw.circle(
             screen,
             (255, 255, 255),
@@ -104,3 +127,45 @@ def update_gravity(planets):
         # Update velocity vector
         for i in range(0, 2):
             corp.velocity[i] += vector_sum[i]
+
+
+def check_collision_planets(planets):
+    """
+    -> The function check if two planets collide.
+    :planets: List of corps.
+    """
+    try:
+        for i in range(1, len(planets)):
+            corp1 = planets[0]
+            corp2 = planets[i]
+
+            distance = math.sqrt(math.pow(corp1.x - corp2.x, 2) + math.pow(corp1.y - corp2.y, 2))
+
+            if corp1.radius + corp2.radius >= distance:
+                # Conservation of momentum
+                corp1.velocity[0] = (corp1.mass * corp1.velocity[0] + corp2.mass * corp2.velocity[0]) / \
+                                    (corp1.mass + corp2.mass)
+                corp1.velocity[1] = (corp1.mass * corp1.velocity[1] + corp2.mass * corp2.velocity[1]) / \
+                                    (corp1.mass + corp2.mass)
+                # Sum the masses and 70% of radius
+                corp1.mass = corp1.mass + corp2.mass
+                corp1.radius = int((corp1.radius + corp2.radius) * 0.70)
+                del planets[planets.index(corp2)]
+    except IndexError:
+        print('Error to check collision')
+
+
+def check_collision_edges(planets, sw, sh):
+    """
+    -> This function checks if the planet collides to the edges,
+    if collides, there is reflections.
+    :planets: List of corps.
+    :sw: Screen width.
+    :sh: Screen height.
+    """
+    for corp in planets:
+        # Reflection
+        if corp.radius + corp.x >= sw or corp.x - corp.radius <= 0:
+            corp.velocity[0] = -corp.velocity[0]
+        if corp.radius + corp.y >= sh or corp.y - corp.radius <= 0:
+            corp.velocity[1] = -corp.velocity[1]
